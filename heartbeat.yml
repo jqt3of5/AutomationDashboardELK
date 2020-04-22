@@ -1,0 +1,246 @@
+################### Heartbeat Configuration Example #########################
+
+# This file is an example configuration file highlighting only some common options.
+# The heartbeat.reference.yml file in the same directory contains all the supported options
+# with detailed comments. You can use it for reference.
+#
+# You can find the full configuration reference here:
+# https://www.elastic.co/guide/en/beats/heartbeat/index.html
+
+############################# Heartbeat ######################################
+
+# Define a directory to load monitor definitions from. Definitions take the form
+# of individual yaml files.
+heartbeat.config.monitors:
+  # Directory + glob pattern to search for configuration files
+  path: ${path.config}/monitors.d/*.yml
+  # If enabled, heartbeat will periodically check the config.monitors path for changes
+  reload.enabled: true
+  # How often to check for changes
+  reload.period: 5s
+
+# Configure monitors inline
+heartbeat.monitors:
+- type: tcp
+  hosts: [
+  "jnicholls-win-2:5900",
+  "xm8-auto-14:5900",
+  "xm8-auto-15:5900",
+  "xm8-auto-12:5900",
+  "xm8-auto-10:5900",
+  "x1auto-wanda:5900",
+  "x1auto-boromi:5900",
+  "x1auto-widow:5900",
+  "x1auto-strange:5900",
+  "x1auto-ant:5900",
+  "x1auto-cap:5900",
+  "x1auto-fury:5900",
+  "x1auto-panther:5900"
+  ]
+  schedule: '@every 60s'
+  mode: all
+
+- type: http
+
+  urls: [
+        "http://xm8-auto-14:8080",
+        "http://xm8-auto-15:8080",
+        "http://xm8-auto-12:8080",
+        "http://xm8-auto-10:8080",
+        "http://x1auto-wanda:8080",
+        "http://x1auto-strange:8080",
+        "http://x1auto-widow:8080",
+        "http://x1auto-ant:8080",
+        "http://x1auto-cap:8080",
+        "http://x1auto-fury:8080",
+        "http://x1auto-panther:8080"
+        ]
+  response.include_body: always
+  # Configure task schedule
+  schedule: '@every 60s'
+  check.response.status: 404
+  # Total test connection and data exchange timeout
+  #timeout: 16s
+  
+- type: http
+
+  # List or urls to query
+  urls: [
+  "http://jnicholls-win-2:4444/grid/admin/X1Proxy",
+  "http://xmw-auto-boromi.xactware.com:4444/grid/admin/X1Proxy",  
+  "http://xm8-auto-14:4723/wd/hub/status",
+  "http://xm8-auto-15:4723/wd/hub/status",
+  "http://xm8-auto-12:4723/wd/hub/status",
+  "http://xm8-auto-10:4723/wd/hub/status",
+  "http://x1auto-wanda:4723/wd/hub/status",
+  "http://x1auto-strange:4723/wd/hub/status",
+  "http://x1auto-widow:4723/wd/hub/status",
+  "http://x1auto-ant:4723/wd/hub/status",
+  "http://x1auto-cap:4723/wd/hub/status",
+  "http://x1auto-fury:4723/wd/hub/status", 
+  "http://x1auto-panther:4723/wd/hub/status"
+  ]
+
+  response.include_body: always
+  # Configure task schedule
+  schedule: '@every 60s'
+
+  # Total test connection and data exchange timeout
+  #timeout: 16s
+- type: icmp
+  schedule: '0 * * * * * *'
+  hosts: [
+  "jnicholls-win-2",
+  "xm8-auto-14",
+  "xm8-auto-15",
+  "xmw-auto-boromi.xactware.com",
+  "xm8-auto-12",
+  "xm8-auto-10",
+  "x1auto-strange",
+  "x1auto-widow",
+  "x1auto-ant",
+  "x1auto-fury",
+  "x1auto-wanda",
+  "x1auto-cap",
+  "x1auto-panther"]
+  
+#==================== Elasticsearch template setting ==========================
+
+setup.template.settings:
+  index.number_of_shards: 1
+  index.codec: best_compression
+  #_source.enabled: false
+
+#================================ General =====================================
+
+# The name of the shipper that publishes the network data. It can be used to group
+# all the transactions sent by a single shipper in the web interface.
+#name:
+
+# The tags of the shipper are included in their own field with each
+# transaction published.
+#tags: ["service-X", "web-tier"]
+
+# Optional fields that you can specify to add additional information to the
+# output.
+#fields:
+#  env: staging
+
+
+#============================== Kibana =====================================
+
+# Starting with Beats version 6.0.0, the dashboards are loaded via the Kibana API.
+# This requires a Kibana endpoint configuration.
+setup.kibana:
+
+  # Kibana Host
+  # Scheme and port can be left out and will be set to the default (http and 5601)
+  # In case you specify and additional path, the scheme is required: http://localhost:5601/path
+  # IPv6 addresses should always be defined as: https://[2001:db8::1]:5601
+  #host: "localhost:5601"
+
+  # Kibana Space ID
+  # ID of the Kibana Space into which the dashboards should be loaded. By default,
+  # the Default Space will be used.
+  #space.id:
+
+#============================= Elastic Cloud ==================================
+
+# These settings simplify using Heartbeat with the Elastic Cloud (https://cloud.elastic.co/).
+
+# The cloud.id setting overwrites the `output.elasticsearch.hosts` and
+# `setup.kibana.host` options.
+# You can find the `cloud.id` in the Elastic Cloud web UI.
+#cloud.id:
+
+# The cloud.auth setting overwrites the `output.elasticsearch.username` and
+# `output.elasticsearch.password` settings. The format is `<user>:<pass>`.
+#cloud.auth:
+
+#================================ Outputs =====================================
+
+# Configure what output to use when sending the data collected by the beat.
+
+#-------------------------- Elasticsearch output ------------------------------
+output.elasticsearch:
+  # Array of hosts to connect to.
+  hosts: ["elasticsearch:9200"]
+
+  # Protocol - either `http` (default) or `https`.
+  #protocol: "https"
+
+  # Authentication credentials - either API key or username/password.
+  #api_key: "id:api_key"
+  username: "elastic"
+  password: "changeme"
+
+#----------------------------- Logstash output --------------------------------
+#output.logstash:
+  # The Logstash hosts
+  #hosts: ["localhost:5044"]
+
+  # Optional SSL. By default is off.
+  # List of root certificates for HTTPS server verifications
+  #ssl.certificate_authorities: ["/etc/pki/root/ca.pem"]
+
+  # Certificate for SSL client authentication
+  #ssl.certificate: "/etc/pki/client/cert.pem"
+
+  # Client Certificate Key
+  #ssl.key: "/etc/pki/client/cert.key"
+
+#================================ Processors =====================================
+
+processors:
+  - add_observer_metadata:
+  # Optional, but recommended geo settings for the location Heartbeat is running in
+  #geo:
+    # Token describing this location
+    #name: us-east-1a
+
+    # Lat, Lon "
+    #location: "37.926868, -78.024902"
+  - decode_json_fields:
+     fields: ["IP_Address"]
+     process_array: true
+     max_depth: 2
+     target: ""
+     overwrite_keys: false
+     add_error_key: true
+#================================ Logging =====================================
+
+# Sets log level. The default log level is info.
+# Available log levels are: error, warning, info, debug
+#logging.level: debug
+
+# At debug level, you can selectively enable logging only for some components.
+# To enable all selectors use ["*"]. Examples of other selectors are "beat",
+# "publish", "service".
+#logging.selectors: ["*"]
+
+#============================== X-Pack Monitoring ===============================
+# heartbeat can export internal metrics to a central Elasticsearch monitoring
+# cluster.  This requires xpack monitoring to be enabled in Elasticsearch.  The
+# reporting is disabled by default.
+
+# Set to true to enable the monitoring reporter.
+#monitoring.enabled: false
+
+# Sets the UUID of the Elasticsearch cluster under which monitoring data for this
+# Heartbeat instance will appear in the Stack Monitoring UI. If output.elasticsearch
+# is enabled, the UUID is derived from the Elasticsearch cluster referenced by output.elasticsearch.
+#monitoring.cluster_uuid:
+
+# Uncomment to send the metrics to Elasticsearch. Most settings from the
+# Elasticsearch output are accepted here as well.
+# Note that the settings should point to your Elasticsearch *monitoring* cluster.
+# Any setting that is not set is automatically inherited from the Elasticsearch
+# output configuration, so if you have the Elasticsearch output configured such
+# that it is pointing to your Elasticsearch monitoring cluster, you can simply
+# uncomment the following line.
+#monitoring.elasticsearch:
+
+#================================= Migration ==================================
+
+# This allows to enable 6.7 migration aliases
+#migration.6_to_7.enabled: true

@@ -1,0 +1,1 @@
+docker run --name=heartbeat --user=heartbeat --net=elastic --dns 172.23.93.10 --dns 172.24.80.10 --dns-search Xactware.com --volume=/Users/i52884/ELK/AutomationDashboard/heartbeat.yml:/usr/share/heartbeat/heartbeat.yml:ro docker.elastic.co/beats/heartbeat:7.6.2 --strict.perms=false -e
