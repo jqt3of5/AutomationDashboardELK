@@ -12,7 +12,8 @@ services:
         logstash:
                 image: docker.elastic.co/logstash/logstash:7.6.2
                 volumes:
-                 - ./logstash/config:/usr/share/logstash/config:ro
+                 - ~/ELK/AutomationDashboard/logstash/config/:/usr/share/logstash/config
+                 - ~/ELK/AutomationDashboard/logstash/pipeline/:/usr/share/logstash/pipeline
         kibana:
                 image: docker.elastic.co/kibana/kibana:7.6.2
                 volumes:
