@@ -12,13 +12,16 @@ services:
      target: /usr/share/heartbeat/heartbeat.yml
  logstash:
   image: docker.elastic.co/logstash/logstash:7.6.2
+  secrets:
+   - source: jira_logstash
+     target: /usr/share/logstash/config/logstash.keystore
   configs:
    - source: logstash_config
      target: /usr/share/logstash/config/logstash.yml
    - source: pipeline_config
      target: /usr/share/logstash/config/pipeline.yml
    - source: pipeline_def
-     target: /usr/share/logstash/config/pipeline/pipeline.yml 
+     target: /usr/share/logstash/config/pipeline/jira.config
  kibana:
   image: docker.elastic.co/kibana/kibana:7.6.2
   configs:
@@ -54,15 +57,18 @@ services:
     memlock:
      soft: -1
      hard: -1
+secrets:
+ jira_logstash:
+  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/logstash.keystore
 configs:
  heartbeat_config:
-  file: /home/jqt3of5/AutomationDashboardELK/heartbeat.yml
+  file: /Users/i52884/ELK/AutomationDashboard/heartbeat.yml
  logstash_config:
-  file: /home/jqt3of5/AutomationDashboardELK/logstash/config/logstash.yml
+  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/logstash.yml
  pipeline_config:	
-  file: /home/jqt3of5/AutomationDashboardELK/logstash/config/pipelines.yml
+  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/pipelines.yml
  pipeline_def:
-  file: /home/jqt3of5/AutomationDashboardELK/logstash/pipeline/pipeline.config
+  file: /Users/i52884/ELK/AutomationDashboard/logstash/pipeline/jira.config
  kibana_config:
-  file: /home/jqt3of5/AutomationDashboardELK/kibana.yml
+  file: /Users/i52884/ELK/AutomationDashboard/kibana.yml
 
