@@ -9,7 +9,7 @@ services:
   dns_search: xactware.com
   configs:
    - source: heartbeat_config
-     target: /usr/share/heartbeat/heatbeat.yml
+     target: /usr/share/heartbeat/heartbeat.yml
  logstash:
   image: docker.elastic.co/logstash/logstash:7.6.2
   configs:
