@@ -6,10 +6,20 @@
 #
 # Example of two pipelines:
 #
- - pipeline.id: jira_fields
+
+ - pipeline.id: jira
    pipeline.workers: 1
    pipeline.batch.size: 1
-   path.config: "/usr/share/logstash/pipeline/jira_fields.config"
+   path.config: "pipeline/jira.config"
+ - pipeline.id: jira_changelog
+   pipeline.workers: 1
+   pipeline.batch.size: 1
+   path.config: "pipeline/jira_changelog.config"
+ - pipeline.id: jira_issues
+   pipeline.workers: 1
+   pipeline.batch.size: 1
+   path.config: "pipeline/jira_issues.config"
+   
 #   config.string: "input { generator {} } filter { sleep { time => 1 } } output { stdout { codec => dots } }"
 # - pipeline.id: another_test
 #   queue.type: persisted
