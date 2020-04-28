@@ -20,10 +20,10 @@ services:
      target: /usr/share/logstash/config/logstash.yml
    - source: pipeline_config
      target: /usr/share/logstash/config/pipeline.yml
-   - source: jira_def
-     target: /usr/share/logstash/pipeline/jira.config
    - source: jira_fields_def
      target: /usr/share/logstash/pipeline/jira_fields.config
+   - source: jira_def
+     target: /usr/share/logstash/pipeline/jira.config
  kibana:
   image: docker.elastic.co/kibana/kibana:7.6.2
   configs:
@@ -34,46 +34,32 @@ services:
  elasticsearch:
   image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
   environment:
-   - discovery.seed_hosts=elasticsearch, elasticsearchmaster
-   - cluster.initial_master_nodes=elasticsearch, elasticsearchmaster
+   - discovery.seed_hosts=elasticsearch
+   - cluster.initial_master_nodes=elasticsearch
    - node.name=elasticsearch
    - bootstrap.memory_lock=false #Should be true, but whatever
-   - "ES_JAVA_OPTS=-Xms2048m -Xmx2048m" #Memory to use for elasticsearch process
+   - "ES_JAVA_OPTS=-Xms512m -Xmx512m" #Memory to use for elasticsearch process
   deploy:
-   replicas: 2
+   replicas: 1
    endpoint_mode: dnsrr
   ulimits:
    memlock:
     soft: -1
     hard: -1
- elasticsearchmaster:
-  image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
-  environment:
-   - discovery.seed_hosts=elasticsearch, elasticsearchmaster
-   - cluster.initial_master_nodes=elasticsearch, elasticsearchmaster
-   - node.name=elasticsearchmaster
-   - bootstrap.memory_lock=false #Should be true, but whatever
-   - "ES_JAVA_OPTS=-Xms2048m -Xmx2048m" #Memory to use for elasticsearch process
-  deploy:
-   replicas: 1
-  ulimits:
-    memlock:
-     soft: -1
-     hard: -1
 secrets:
  jira_logstash:
-  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/logstash.keystore
+  file: /home/jqt3of5/AutomationDashboard/logstash/config/logstash.keystore
 configs:
  heartbeat_config:
-  file: /Users/i52884/ELK/AutomationDashboard/heartbeat.yml
+  file: /home/jqt3of5/AutomationDashboard/heartbeat.yml
  logstash_config:
-  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/logstash.yml
+  file: /home/jqt3of5/AutomationDashboard/logstash/config/logstash.yml
  pipeline_config:	
-  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/pipelines.yml
+  file: /home/jqt3of5/AutomationDashboard/logstash/config/pipelines.yml
  jira_def:
-  file: /Users/i52884/ELK/AutomationDashboard/logstash/pipeline/jira.config
+  file: /home/jqt3of5/AutomationDashboard/logstash/pipeline/jira.config
  jira_fields_def:
-  file: /Users/i52884/ELK/AutomationDashboard/logstash/pipeline/jira_fields.config
+  file: /home/jqt3of5/AutomationDashboard/logstash/pipeline/jira_fields.config
  kibana_config:
-  file: /Users/i52884/ELK/AutomationDashboard/kibana.yml
+  file: /home/jqt3of5/AutomationDashboard/kibana.yml
 
