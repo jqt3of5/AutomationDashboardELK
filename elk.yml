@@ -20,8 +20,10 @@ services:
      target: /usr/share/logstash/config/logstash.yml
    - source: pipeline_config
      target: /usr/share/logstash/config/pipeline.yml
-   - source: pipeline_def
-     target: /usr/share/logstash/config/pipeline/jira.config
+   - source: jira_def
+     target: /usr/share/logstash/pipeline/jira.config
+   - source: jira_fields_def
+     target: /usr/share/logstash/pipeline/jira_fields.config
  kibana:
   image: docker.elastic.co/kibana/kibana:7.6.2
   configs:
@@ -39,6 +41,7 @@ services:
    - "ES_JAVA_OPTS=-Xms2048m -Xmx2048m" #Memory to use for elasticsearch process
   deploy:
    replicas: 2
+   endpoint_mode: dnsrr
   ulimits:
    memlock:
     soft: -1
@@ -67,8 +70,10 @@ configs:
   file: /Users/i52884/ELK/AutomationDashboard/logstash/config/logstash.yml
  pipeline_config:	
   file: /Users/i52884/ELK/AutomationDashboard/logstash/config/pipelines.yml
- pipeline_def:
+ jira_def:
   file: /Users/i52884/ELK/AutomationDashboard/logstash/pipeline/jira.config
+ jira_fields_def:
+  file: /Users/i52884/ELK/AutomationDashboard/logstash/pipeline/jira_fields.config
  kibana_config:
   file: /Users/i52884/ELK/AutomationDashboard/kibana.yml
 
