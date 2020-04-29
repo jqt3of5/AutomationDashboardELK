@@ -10,6 +10,8 @@ services:
   configs:
    - source: heartbeat_config
      target: /usr/share/heartbeat/heartbeat.yml
+  deploy:
+   replicas: 0
  logstash:
   image: docker.elastic.co/logstash/logstash:7.6.2
   secrets:
@@ -19,11 +21,12 @@ services:
    - source: logstash_config
      target: /usr/share/logstash/config/logstash.yml
    - source: pipeline_config
-     target: /usr/share/logstash/config/pipeline.yml
-   - source: jira_fields_def
-     target: /usr/share/logstash/pipeline/jira_fields.config
-   - source: jira_def
-     target: /usr/share/logstash/pipeline/jira.config
+     target: /usr/share/logstash/config/pipelines.yml
+  volumes:
+   - type: bind
+     source: /Users/i52884/ELK/AutomationDashboard/logstash/pipeline
+     target: /usr/share/logstash/pipeline
+
  kibana:
   image: docker.elastic.co/kibana/kibana:7.6.2
   configs:
@@ -31,6 +34,8 @@ services:
       target: /usr/share/kibana/config/kibana.yml
   ports:
    - 5601:5601
+  deploy:
+    replicas: 0
  elasticsearch:
   image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
   environment:
@@ -46,20 +51,18 @@ services:
    memlock:
     soft: -1
     hard: -1
+    
 secrets:
  jira_logstash:
-  file: /home/jqt3of5/AutomationDashboard/logstash/config/logstash.keystore
+  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/logstash.keystore
+
 configs:
  heartbeat_config:
-  file: /home/jqt3of5/AutomationDashboard/heartbeat.yml
+  file: /Users/i52884/ELK/AutomationDashboard/heartbeat.yml
  logstash_config:
-  file: /home/jqt3of5/AutomationDashboard/logstash/config/logstash.yml
+  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/logstash.yml
  pipeline_config:	
-  file: /home/jqt3of5/AutomationDashboard/logstash/config/pipelines.yml
- jira_def:
-  file: /home/jqt3of5/AutomationDashboard/logstash/pipeline/jira.config
- jira_fields_def:
-  file: /home/jqt3of5/AutomationDashboard/logstash/pipeline/jira_fields.config
+  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/pipelines.yml
  kibana_config:
-  file: /home/jqt3of5/AutomationDashboard/kibana.yml
+  file: /Users/i52884/ELK/AutomationDashboard/kibana.yml
 
