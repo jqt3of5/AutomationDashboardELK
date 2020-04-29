@@ -19,7 +19,7 @@
    pipeline.workers: 1
    pipeline.batch.size: 1
    path.config: "/usr/share/logstash/pipeline/jira_issues.config"
-   
+
 #   config.string: "input { generator {} } filter { sleep { time => 1 } } output { stdout { codec => dots } }"
 # - pipeline.id: another_test
 #   queue.type: persisted
