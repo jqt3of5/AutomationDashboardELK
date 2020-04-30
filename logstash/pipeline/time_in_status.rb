@@ -58,7 +58,7 @@ def filter(event)
         history = e.get("[issues][changelog][histories]")
 
         if history["items"]["field"] == "status"
-            next_events = events.filter{ |ev|
+            next_events = events.select{ |ev|
                 ev.get("[issues][changelog][histories][items][from]") == history["items"]["to"] && ev.get("[issues][changelog][histories][created]") > history["created"]
              }
             if !next_events.empty?
