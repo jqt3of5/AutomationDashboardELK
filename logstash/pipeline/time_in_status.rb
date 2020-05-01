@@ -4,7 +4,6 @@ require 'logstash/filters/split'
 # in the logstash configuration
 def register(params)
 	# @drop_percentage = params["percentage"]
-	@field = ""
 end
 def split(event, field)
     original_value = event.get(field)
@@ -37,10 +36,10 @@ def split(event, field)
       # Push this new event onto the stack at the LogStash::FilterWorker
       yield event_split
     end
-
     # Cancel this event, we'll use the newly generated ones above.
     event.cancel
 end
+
 # the filter method receives an event and must return a list of events.
 # Dropping an event means not including it in the return array,
 # while creating new ones only requires you to add a new instance of
@@ -62,8 +61,20 @@ def filter(event)
                 ev.get("[issues][changelog][histories][items][from]") == history["items"]["to"] && ev.get("[issues][changelog][histories][created]") > history["created"]
              }
             if !next_events.empty?
-                next_event = next_event.min { |a, b| a.get("[issues][changelog][histories][created]") <=> b.get("[issues][changelog][histories][created]") }
-                e.set("[issues][changelog][histories][nextTransition]", next_event.get("[issues][changelog][histories][created]"))
+                next_event = next_events.min { |a, b| a.get("[issues][changelog][histories][created]") <=> b.get("[issues][changelog][histories][created]") }
+                current_transition_date = e.get("[issues][changelog][histories][created]")
+                next_transition_date = next_event.get("[issues][changelog][histories][created]")
+
+
+                e.set("[issues][changelog][histories][nextTransition]", next_transition_date)
+
+                next_date = DateTime.parse(next_transition_date)
+                current_date = DateTime.parse(current_transition_date)
+
+                e.set("[issues][changelog][histories][timeInStatus]", (next_date - current_date).to_f)
+
+            else
+                e.set("[issues][changelog][histories][nextTransition]", nil)
             end
         end
     }

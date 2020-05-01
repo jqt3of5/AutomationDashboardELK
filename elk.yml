@@ -13,7 +13,7 @@ services:
   deploy:
    replicas: 0
  logstash:
-  image: docker.elastic.co/logstash/logstash:7.6.2
+  image: logstash_jire_poller:latest
   secrets:
    - source: jira_logstash
      target: /usr/share/logstash/config/logstash.keystore
@@ -24,7 +24,7 @@ services:
      target: /usr/share/logstash/config/pipelines.yml
   volumes:
    - type: bind
-     source: /home/jqt3of5/AutomationDashboard/logstash/pipeline
+     source: /Users/i52884/ELK/AutomationDashboard/logstash/pipeline
      target: /usr/share/logstash/pipeline
 
  kibana:
@@ -35,30 +35,42 @@ services:
   ports:
    - 5601:5601
   deploy:
-    replicas: 0
+    replicas: 1
 
  elasticsearch01:
   image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
   environment:
-   - discovery.seed_hosts=elasticsearch, elasticsearch02
-   - cluster.initial_master_nodes=elasticsearch, elasticsearch01, elasticsearch02
+   - discovery.seed_hosts=elasticsearch03, elasticsearch02
+   - cluster.initial_master_nodes=elasticsearch03, elasticsearch01, elasticsearch02
    - node.name=elasticsearch01
+   - node.data=false
    - bootstrap.memory_lock=false #Should be true, but whatever
-   - "ES_JAVA_OPTS=-Xms512m -Xmx512m" #Memory to use for elasticsearch process
+   - "ES_JAVA_OPTS=-Xms256m -Xmx256m" #Memory to use for elasticsearch process
+
  elasticsearch02:
   image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
   environment:
-     - discovery.seed_hosts=elasticsearch, elasticsearch01
-     - cluster.initial_master_nodes=elasticsearch, elasticsearch01, elasticsearch02
-     - node.name=elasticsearch029bb48a1d8899
+     - discovery.seed_hosts=elasticsearch03, elasticsearch01
+     - cluster.initial_master_nodes=elasticsearch03, elasticsearch01, elasticsearch02
+     - node.name=elasticsearch02
+     - node.data=false
      - bootstrap.memory_lock=false #Should be true, but whatever
-     - "ES_JAVA_OPTS=-Xms512m -Xmx512m" #Memory to use for elasticsearch process
+     - "ES_JAVA_OPTS=-Xms256m -Xmx256m" #Memory to use for elasticsearch process
+
+ elasticsearch03:
+  image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
+  environment:
+   - discovery.seed_hosts=elasticsearch02, elasticsearch01
+   - cluster.initial_master_nodes=elasticsearch03, elasticsearch01, elasticsearch02
+   - node.name=elasticsearch03
+   - node.data=false
+   - bootstrap.memory_lock=false #Should be true, but whatever
+   - "ES_JAVA_OPTS=-Xms256m -Xmx256m" #Memory to use for elasticsearch process
+
  elasticsearch:
   image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
   environment:
-   - discovery.seed_hosts=elasticsearch01, elasticsearch02
-   - cluster.initial_master_nodes=elasticsearch, elasticsearch01, elasticsearch02
-   - node.name=elasticsearch
+   - discovery.seed_hosts=elasticsearch01,elasticsearch02,elasticsearch03
    - bootstrap.memory_lock=false #Should be true, but whatever
    - "ES_JAVA_OPTS=-Xms512m -Xmx512m" #Memory to use for elasticsearch process
   deploy:
@@ -67,15 +79,15 @@ services:
 
 secrets:
  jira_logstash:
-  file: /home/jqt3of5/AutomationDashboard/logstash/config/logstash.keystore
+  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/logstash.keystore
 
 configs:
  heartbeat_config:
-  file: /home/jqt3of5/AutomationDashboard/heartbeat.yml
+  file: /Users/i52884/ELK/AutomationDashboard/heartbeat.yml
  logstash_config:
-  file: /home/jqt3of5/AutomationDashboard/logstash/config/logstash.yml
+  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/logstash.yml
  pipeline_config:	
-  file: /home/jqt3of5/AutomationDashboard/logstash/config/pipelines.yml
+  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/pipelines.yml
  kibana_config:
-  file: /home/jqt3of5/AutomationDashboard/kibana.yml
+  file: /Users/i52884/ELK/AutomationDashboard/kibana.yml
 

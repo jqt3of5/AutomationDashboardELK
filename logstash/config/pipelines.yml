@@ -20,7 +20,7 @@
    pipeline.batch.size: 1
    path.config: "/usr/share/logstash/pipeline/jira_issues.config"
 
-#   config.string: "input { generator {} } filter { sleep { time => 1 } } output { stdout { codec => dots } }"
+#   config.string: "logstash { generator {} } filter { sleep { time => 1 } } output { stdout { codec => dots } }"
 # - pipeline.id: another_test
 #   queue.type: persisted
 #   path.config: "/tmp/logstash/*.config"
@@ -31,7 +31,7 @@
 #   pipeline.id: mylogs
 #
 #   # The configuration string to be used by this pipeline
-#   config.string: "input { generator {} } filter { sleep { time => 1 } } output { stdout { codec => dots } }"
+#   config.string: "logstash { generator {} } filter { sleep { time => 1 } } output { stdout { codec => dots } }"
 #
 #   # The path from where to read the configuration text
 #   path.config: "/etc/conf.d/logstash/myconfig.cfg"
