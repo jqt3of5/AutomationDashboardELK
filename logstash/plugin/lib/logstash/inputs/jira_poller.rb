@@ -153,7 +153,7 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
     method, url, spec = request
 
     url2 = url + "/rest/api/2/search?jql=project=#{project}&expand=changelog&startAt=#{startAt}&maxResults=50"
-    puts url2
+
     client.async.send(method, url2, spec).
       on_success {|response| handle_success(queue, project, startAt, request, response, Time.now - started)}.
       on_failure {|exception| handle_failure(queue, project, request, exception, Time.now - started) }
@@ -169,9 +169,9 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
         event = @target ? LogStash::Event.new(@target => decoded.to_hash) : decoded
         handle_decoded_event(queue, project, request, response, event, execution_time)
 
-        #if startAt + 50 <= decoded.get("[total]")
-        #    request_async(queue, project, request, startAt + 50)
-        #end
+        if startAt + 50 <= 200 #decoded.get("[total]")
+            request_async(queue, project, request, startAt + 50)
+        end
 
       end
     else
