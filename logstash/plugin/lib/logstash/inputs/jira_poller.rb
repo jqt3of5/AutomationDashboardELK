@@ -54,13 +54,13 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
 
   private
   def setup_requests!
-    @requests = Hash[@projects.map {|project| [project, normalize_request(project, @baseurl)] }]
+    @requests = Hash[@projects.map {|project| [project, normalize_request(@baseurl)] }]
   end
 
   private
-  def normalize_request(project, url_or_spec)
+  def normalize_request(url_or_spec)
     if url_or_spec.is_a?(String)
-      res = [:get, url_or_spec + "/rest/api/2/search?jql=project=#{project}&expand=changelog"]
+      res = [:get, url_or_spec]
     elsif url_or_spec.is_a?(Hash)
       # The client will expect keys / values
       spec = Hash[url_or_spec.clone.map {|k,v| [k.to_sym, v] }] # symbolize keys
@@ -68,7 +68,7 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
       # method and url aren't really part of the options, so we pull them out
       method = (spec.delete(:method) || :get).to_sym.downcase
       url = spec.delete(:url)
-      url += "/rest/api/2/search?jql=project=#{project}&expand=changelog"
+
       # Manticore wants auth options that are like {:auth => {:user => u, :pass => p}}
       # We allow that because earlier versions of this plugin documented that as the main way to
       # to do things, but now prefer top level "user", and "password" options
@@ -140,36 +140,43 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
 
   def run_once(queue)
     @requests.each do |project, request|
-      request_async(queue, project, request)
+      request_async(queue, project, request, 0)
     end
 
     client.execute!
   end
 
   private
-  def request_async(queue, project, request)
+  def request_async(queue, project, request, startAt)
     @logger.debug? && @logger.debug("Fetching URL", :project => project, :url => request)
     started = Time.now
+    method, url, spec = request
 
-    method, *request_opts = request
-    client.async.send(method, *request_opts).
-      on_success {|response| handle_success(queue, project, request, response, Time.now - started)}.
+    url2 = url + "/rest/api/2/search?jql=project=#{project}&expand=changelog&startAt=#{startAt}&maxResults=50"
+    puts url2
+    client.async.send(method, url2, spec).
+      on_success {|response| handle_success(queue, project, startAt, request, response, Time.now - started)}.
       on_failure {|exception| handle_failure(queue, project, request, exception, Time.now - started) }
   end
 
   private
-  def handle_success(queue, name, request, response, execution_time)
+  def handle_success(queue, project, startAt, request, response, execution_time)
     body = response.body
     # If there is a usable response. HEAD requests are `nil` and empty get
     # responses come up as "" which will cause the codec to not yield anything
     if body && body.size > 0
       decode_and_flush(@codec, body) do |decoded|
         event = @target ? LogStash::Event.new(@target => decoded.to_hash) : decoded
-        handle_decoded_event(queue, name, request, response, event, execution_time)
+        handle_decoded_event(queue, project, request, response, event, execution_time)
+
+        #if startAt + 50 <= decoded.get("[total]")
+        #    request_async(queue, project, request, startAt + 50)
+        #end
+
       end
     else
       event = ::LogStash::Event.new
-      handle_decoded_event(queue, name, request, response, event, execution_time)
+      handle_decoded_event(queue, project, startAt, request, response, event, execution_time)
     end
   end
 
