@@ -1,43 +1,7 @@
-require 'logstash/filters/split'
-
 # the value of `params` is the value of the hash passed to `script_params`
 # in the logstash configuration
 def register(params)
 	# @drop_percentage = params["percentage"]
-end
-def split(event, field)
-    original_value = event.get(field)
-
-    if original_value.is_a?(Array)
-      splits = @target.nil? ? event.remove(field) : original_value
-    elsif original_value.is_a?(String)
-      # Using -1 for 'limit' on String#split makes ruby not drop trailing empty
-      # splits.
-      splits = original_value.split(@terminator, -1)
-    else
-      logger.warn("Only String and Array types are splittable. field:#{field} is of type = #{original_value.class}")
-      #event.tag(PARSE_FAILURE_TAG)
-      return
-    end
-
-    # Skip filtering if splitting this event resulted in only one thing found.
-    return if splits.length == 1 && original_value.is_a?(String)
-
-    # set event_target to @field if not configured
-    event_target = field
-
-    splits.each do |value|
-      next if value.nil? || (value.is_a?(String) && value.empty?)
-
-      event_split = event.clone
-      event_split.set(event_target, value)
-     # filter_matched(event_split)
-
-      # Push this new event onto the stack at the LogStash::FilterWorker
-      yield event_split
-    end
-    # Cancel this event, we'll use the newly generated ones above.
-    event.cancel
 end
 
 # the filter method receives an event and must return a list of events.
@@ -46,39 +10,42 @@ end
 # LogStash::Event to the returned array
 def filter(event)
 
-    events = []
-    split(event,"[issues][changelog][histories]") { |event1|
-        split(event1,"[issues][changelog][histories][items]") { |event2|
-            events.push(event2)
+    histories = event.get("[issues][changelog][histories]")
+    transitions = histories.flat_map { |history|
+        history["items"].select { |item|
+            item["field"] == "status"
+        }.map { |item|
+            hist = history.clone
+            hist["previous_status"] = item["fromString"]
+            hist["status"] = item["toString"]
+            hist["previous_status_id"] = item["from"]
+            hist["status_id"] = item["to"]
+            hist.delete("items")
+            #TODO: Use Status Object from GET /rest/2/status
+
+            hist
         }
     }
 
-    events.each { |e|
-        history = e.get("[issues][changelog][histories]")
+    transitions.each { |transition|
+        next_transition = transitions.select{ |trans|
+            trans["previous_status_id"] == transition["status_id"] && trans["created"] > transition["created"]
+        }.min{ |a, b| a["created"] <=> b["created"] }
 
-        if history["items"]["field"] == "status"
-            next_events = events.select{ |ev|
-                ev.get("[issues][changelog][histories][items][from]") == history["items"]["to"] && ev.get("[issues][changelog][histories][created]") > history["created"]
-             }
-            if !next_events.empty?
-                next_event = next_events.min { |a, b| a.get("[issues][changelog][histories][created]") <=> b.get("[issues][changelog][histories][created]") }
-                current_transition_date = e.get("[issues][changelog][histories][created]")
-                next_transition_date = next_event.get("[issues][changelog][histories][created]")
+        if !next_transition.nil?
+            transition["nextTransition"] = next_transition["created"]
 
+            next_date = DateTime.parse(next_transition["created"])
+            current_date = DateTime.parse(transition["created"])
 
-                e.set("[issues][changelog][histories][nextTransition]", next_transition_date)
-
-                next_date = DateTime.parse(next_transition_date)
-                current_date = DateTime.parse(current_transition_date)
-
-                e.set("[issues][changelog][histories][timeInStatus]", (next_date - current_date).to_f)
-
-            else
-                e.set("[issues][changelog][histories][nextTransition]", nil)
-            end
+            transition["timeInStatus"] = (next_date - current_date).to_f
+        else
+            transition["nextTransition"] = nil
         end
     }
 
-    return events
+    event.set("[issues][transitions]", transitions)
+
+    return [event]
 # return [] # return empty array to cancel event
 end
