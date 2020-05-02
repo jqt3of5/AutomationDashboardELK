@@ -1,6 +1,6 @@
 
 Gem::Specification.new do |s|
-  s.name        = 'logstash-input-jira_poller'
+  s.name        = 'logstash-filter-time_in_status'
   s.version         = '1.0.0'
   s.licenses    = ['Apache License (2.0)']
   s.summary     = "Decodes the output of an HTTP API into events"
@@ -11,10 +11,10 @@ Gem::Specification.new do |s|
   s.require_paths = ["lib"]
 
   # Files
-  s.files = Dir["lib/logstash/inputs/jira_poller.rb","logstash-input-jira_poller.gemspec","Gemfile", "vendor/jar-dependencies/**/*.jar", "vendor/jar-dependencies/**/*.rb"]
+  s.files = Dir["lib/logstash/filters/time_in_status.rb","logstash-filter-time_in_status.gemspec","Gemfile", "vendor/jar-dependencies/**/*.jar", "vendor/jar-dependencies/**/*.rb"]
 
   # Special flag to let us know this is actually a logstash plugin
-  s.metadata = { "logstash_plugin" => "true", "logstash_group" => "input" }
+  s.metadata = { "logstash_plugin" => "true", "logstash_group" => "filter" }
 
   # Gem dependencies
   s.add_runtime_dependency "logstash-core-plugin-api", ">= 1.60", "<= 2.99"

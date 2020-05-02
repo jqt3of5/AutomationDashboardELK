@@ -24,7 +24,7 @@ services:
      target: /usr/share/logstash/config/pipelines.yml
   volumes:
    - type: bind
-     source: /Users/i52884/ELK/AutomationDashboard/logstash/pipeline
+     source: /home/jqt3of5/AutomationDashboard/logstash/pipeline
      target: /usr/share/logstash/pipeline
 
  kibana:
@@ -79,15 +79,15 @@ services:
 
 secrets:
  jira_logstash:
-  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/logstash.keystore
+  file: /home/jqt3of5/AutomationDashboard/logstash/config/logstash.keystore
 
 configs:
  heartbeat_config:
-  file: /Users/i52884/ELK/AutomationDashboard/heartbeat.yml
+  file: /home/jqt3of5/AutomationDashboard/heartbeat.yml
  logstash_config:
-  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/logstash.yml
+  file: /home/jqt3of5/AutomationDashboard/logstash/config/logstash.yml
  pipeline_config:	
-  file: /Users/i52884/ELK/AutomationDashboard/logstash/config/pipelines.yml
+  file: /home/jqt3of5/AutomationDashboard/logstash/config/pipelines.yml
  kibana_config:
-  file: /Users/i52884/ELK/AutomationDashboard/kibana.yml
+  file: /home/jqt3of5/AutomationDashboard/kibana.yml
 
