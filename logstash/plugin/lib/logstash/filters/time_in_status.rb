@@ -18,24 +18,7 @@ class LogStash::Filters::Time_In_Status < LogStash::Filters::Base
   # while creating new ones only requires you to add a new instance of
   # LogStash::Event to the returned array
   def filter(event)
-
-    histories = event.get("[issues][changelog][histories]")
-    transitions = histories.flat_map { |history|
-      history["items"].select { |item|
-        item["field"] == "status"
-      }.map { |item|
-        hist = history.clone
-        hist["previous_status"] = item["fromString"]
-        hist["status"] = item["toString"]
-        hist["previous_status_id"] = item["from"]
-        hist["status_id"] = item["to"]
-        hist.delete("items")
-        #TODO: Use Status Object from GET /rest/2/status
-
-        hist
-      }
-    }
-
+    transitions = event.get("[issues][transitions]")
     transitions.each { |transition|
       next_transition = transitions.select{ |trans|
         trans["previous_status_id"] == transition["status_id"] && trans["created"] > transition["created"]

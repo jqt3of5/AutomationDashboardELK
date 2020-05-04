@@ -19,7 +19,10 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
   # The name and the url will be passed in the outputed event
   config :baseurl, :validate => :hash, :required => true
 
+  config :jql, :validate => :string
+
   # Schedule of when to periodically poll from the urls
+  #
   # Format: A hash with
   #   + key: "cron" | "every" | "in" | "at"
   #   + value: string
@@ -43,18 +46,11 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
     @host = Socket.gethostname.force_encoding(Encoding::UTF_8)
 
     @logger.info("Registering jira_poller Input", :type => @type, :schedule => @schedule, :timeout => @timeout)
-
-    setup_requests!
   end
 
   def stop
     Stud.stop!(@interval_thread) if @interval_thread
     @scheduler.stop if @scheduler
-  end
-
-  private
-  def setup_requests!
-    @requests = Hash[@projects.map {|project| [project, normalize_request(@baseurl)] }]
   end
 
   private
@@ -97,7 +93,6 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
     validate_request!(url_or_spec, res)
     res
   end
-
   private
   def validate_request!(url_or_spec, request)
     method, url, spec = request
@@ -133,50 +128,64 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
 
     @scheduler = Rufus::Scheduler.new(:max_work_threads => 1)
     #as of v3.0.9, :first_in => :now doesn't work. Use the following workaround instead
-    opts = schedule_type == "every" ? { :first_in => 0.01 } : {}
+    opts = schedule_type == "every" ? { :first_in => "1s"} : {}
     @scheduler.send(schedule_type, schedule_value, opts) { run_once(queue) }
     @scheduler.join
   end
 
   def run_once(queue)
-    @requests.each do |project, request|
-      request_async(queue, project, request, 0)
-    end
+    request = normalize_request(@baseurl)
+    method, url, spec = request
+    status_url = url + "/rest/api/2/status"
+
+    client.async.send(method, status_url, spec)
+        .on_success {|response|
+          body = response.body
+          # If there is a usable response. HEAD requests are `nil` and empty get
+          # responses come up as "" which will cause the codec to not yield anything
+          if body && body.size > 0
+            decode_and_flush(@codec, body) do |statuses|
+              @projects.each do |project|
+                request_async(queue, project, request, statuses, 0)
+              end
+            end
+          end
+        }
+        .on_failure {|exception| }
 
     client.execute!
   end
 
   private
-  def request_async(queue, project, request, startAt)
+  def request_async(queue, project, request, statuses, startAt)
     @logger.debug? && @logger.debug("Fetching URL", :project => project, :url => request)
     started = Time.now
     method, url, spec = request
 
-    url2 = url + "/rest/api/2/search?jql=project=#{project}&expand=changelog&startAt=#{startAt}&maxResults=50"
+    issue_url = url + URI::encode("/rest/api/2/search?jql=project=#{project} and #{@jql}&expand=changelog&startAt=#{startAt}&maxResults=50")
 
-    client.async.send(method, url2, spec).
-      on_success {|response| handle_success(queue, project, startAt, request, response, Time.now - started)}.
+    client.async.send(method, issue_url, spec).
+      on_success {|response| handle_success(queue, project, statuses, startAt, request, response, Time.now - started)}.
       on_failure {|exception| handle_failure(queue, project, request, exception, Time.now - started) }
   end
 
   private
-  def handle_success(queue, project, startAt, request, response, execution_time)
+  def handle_success(queue, project, statuses, startAt, request, response, execution_time)
     body = response.body
     # If there is a usable response. HEAD requests are `nil` and empty get
     # responses come up as "" which will cause the codec to not yield anything
     if body && body.size > 0
       decode_and_flush(@codec, body) do |decoded|
         event = @target ? LogStash::Event.new(@target => decoded.to_hash) : decoded
-        handle_decoded_event(queue, project, request, response, event, execution_time)
+        handle_decoded_event(queue, project, statuses, request, response, event, execution_time)
 
-        if startAt + 50 <= 200 #decoded.get("[total]")
-            request_async(queue, project, request, startAt + 50)
+        if startAt + 50 <= decoded.get("[total]")
+            request_async(queue, project, statuses, request, startAt + 50)
         end
-
       end
     else
       event = ::LogStash::Event.new
-      handle_decoded_event(queue, project, startAt, request, response, event, execution_time)
+      handle_decoded_event(queue, project, statuses, request, response, event, execution_time)
     end
   end
 
@@ -187,15 +196,41 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
   end
 
   private
-  def handle_decoded_event(queue, name, request, response, event, execution_time)
-    apply_metadata(event, name, request, response, execution_time)
+  def handle_decoded_event(queue, project, statuses, request, response, event, execution_time)
+    apply_metadata(event, project, request, response, execution_time)
     decorate(event)
+
+    issues = event.get("[issues]")
+    issues.each do |issue|
+      issue["changelog"]["histories"].each do |histories|
+        transitions = histories.flat_map { |history|
+          history["items"].select { |item|
+            item["field"] == "status"
+          }.map { |item|
+            hist = history.clone
+
+            previous_status_id = item["from"]
+            hist["previous_status"] = statuses.select { |status| status["id"] == previous_status_id}.first
+
+            status_id = item["to"]
+            hist["status"] = statuses.select { |status| status["id"] == status_id}.first
+
+            hist.delete("items")
+
+            hist
+          }
+        }
+        issue["transitions"] = transitions
+      end
+    end
+    event.set("[issues]", issues)
+
     queue << event
   rescue StandardError, java.lang.Exception => e
     @logger.error? && @logger.error("Error eventifying response!",
                                     :exception => e,
                                     :exception_message => e.message,
-                                    :name => name,
+                                    :name => project,
                                     :url => request,
                                     :response => response
     )

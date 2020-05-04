@@ -20,8 +20,11 @@ def filter(event)
     unless components.empty?
       size = components.first["name"]
 
-      event.set("[issues][fields][customfield_10052]", sizes[size])
+      event.set("[issues][fields][StoryPoints]", sizes[size])
     end
+  else
+    event.set("[issues][fields][StoryPoints]", storyPoints)
   end
 
+  [event]
 end
