@@ -169,7 +169,7 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
         handle_decoded_event(queue, project, request, response, event, execution_time)
 
         if startAt + 50 <= decoded.get("[total]")
-            request_async(queue, project, statuses, request, startAt + 50)
+            request_async(queue, project, request, startAt + 50)
         end
       end
     else

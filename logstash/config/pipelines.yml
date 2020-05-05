@@ -10,15 +10,15 @@
  - pipeline.id: jira
    pipeline.workers: 1
    pipeline.batch.size: 1
-   path.config: "/usr/share/logstash/pipeline/jira.config"
- - pipeline.id: jira_transitions
-   pipeline.workers: 1
-   pipeline.batch.size: 1
-   path.config: "/usr/share/logstash/pipeline/jira_transitions.config"
- - pipeline.id: jira_issues
-   pipeline.workers: 1
-   pipeline.batch.size: 1
-   path.config: "/usr/share/logstash/pipeline/jira_issues.config"
+   path.config: "/home/jqt3of5/AutomationDashboard/logstash/pipeline/jira.config"
+# - pipeline.id: jira_transitions
+#   pipeline.workers: 1
+#   pipeline.batch.size: 1
+#   path.config: "/usr/share/logstash/pipeline/jira_transitions.config"
+# - pipeline.id: jira_issues
+#   pipeline.workers: 1
+#   pipeline.batch.size: 1
+#   path.config: "/usr/share/logstash/pipeline/jira_issues.config"
 
 #   config.string: "logstash { generator {} } filter { sleep { time => 1 } } output { stdout { codec => dots } }"
 # - pipeline.id: another_test
