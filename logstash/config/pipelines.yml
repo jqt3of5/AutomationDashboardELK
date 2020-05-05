@@ -10,7 +10,7 @@
  - pipeline.id: jira
    pipeline.workers: 1
    pipeline.batch.size: 1
-   path.config: "/home/jqt3of5/AutomationDashboard/logstash/pipeline/jira.config"
+   path.config: "/Users/i52884/ELK/AutomationDashboard/logstash/pipeline/jira.config"
 # - pipeline.id: jira_transitions
 #   pipeline.workers: 1
 #   pipeline.batch.size: 1
