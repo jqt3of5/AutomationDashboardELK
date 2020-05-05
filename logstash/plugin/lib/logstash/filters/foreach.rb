@@ -12,6 +12,9 @@ class LogStash::Filters::Foreach < LogStash::Filters::Base
   #   foreach {
   #     task_id => "%{task_id}"
   #     field => "field_name"
+  #     TODO:
+  #     orderBy => "field_name"
+  #     ascending = > true
   #   }
   # }
   #

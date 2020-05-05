@@ -48,6 +48,14 @@ class LogStash::Filters::Join < LogStash::Filters::Base
       return [event]
     end
 
+    @join_fields.each do |field|
+        if event.get(field).nil?
+            filter_matched(event)
+            return [event]
+        end
+    end
+
+
     if !@tasks.key?(task_id)
         joined_event = event.clone
 
@@ -75,8 +83,9 @@ class LogStash::Filters::Join < LogStash::Filters::Base
         task[:count] += 1
 
         #TODO: It's possible that not all events will make it, implement a time out.
-        if task[:count] > task[:total]
+        if task[:count] >= task[:total]
             yield task[:event]
+            @tasks.delete(task_id)
         end
 
         event.cancel
