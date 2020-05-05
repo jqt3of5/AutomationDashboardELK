@@ -138,26 +138,15 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
     method, url, spec = request
     status_url = url + "/rest/api/2/status"
 
-    client.async.send(method, status_url, spec)
-        .on_success {|response|
-          body = response.body
-          # If there is a usable response. HEAD requests are `nil` and empty get
-          # responses come up as "" which will cause the codec to not yield anything
-          if body && body.size > 0
-            decode_and_flush(@codec, body) do |statuses|
-              @projects.each do |project|
-                request_async(queue, project, request, statuses, 0)
-              end
-            end
-          end
-        }
-        .on_failure {|exception| }
+    @projects.each do |project|
+        request_async(queue, project, request, 0)
+    end
 
     client.execute!
   end
 
   private
-  def request_async(queue, project, request, statuses, startAt)
+  def request_async(queue, project, request, startAt)
     @logger.debug? && @logger.debug("Fetching URL", :project => project, :url => request)
     started = Time.now
     method, url, spec = request
@@ -165,19 +154,19 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
     issue_url = url + URI::encode("/rest/api/2/search?jql=project=#{project} and #{@jql}&expand=changelog&startAt=#{startAt}&maxResults=50")
 
     client.async.send(method, issue_url, spec).
-      on_success {|response| handle_success(queue, project, statuses, startAt, request, response, Time.now - started)}.
+      on_success {|response| handle_success(queue, project, startAt, request, response, Time.now - started)}.
       on_failure {|exception| handle_failure(queue, project, request, exception, Time.now - started) }
   end
 
   private
-  def handle_success(queue, project, statuses, startAt, request, response, execution_time)
+  def handle_success(queue, project, startAt, request, response, execution_time)
     body = response.body
     # If there is a usable response. HEAD requests are `nil` and empty get
     # responses come up as "" which will cause the codec to not yield anything
     if body && body.size > 0
       decode_and_flush(@codec, body) do |decoded|
         event = @target ? LogStash::Event.new(@target => decoded.to_hash) : decoded
-        handle_decoded_event(queue, project, statuses, request, response, event, execution_time)
+        handle_decoded_event(queue, project, request, response, event, execution_time)
 
         if startAt + 50 <= decoded.get("[total]")
             request_async(queue, project, statuses, request, startAt + 50)
@@ -185,7 +174,7 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
       end
     else
       event = ::LogStash::Event.new
-      handle_decoded_event(queue, project, statuses, request, response, event, execution_time)
+      handle_decoded_event(queue, project, request, response, event, execution_time)
     end
   end
 
@@ -196,32 +185,30 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
   end
 
   private
-  def handle_decoded_event(queue, project, statuses, request, response, event, execution_time)
+  def handle_decoded_event(queue, project, request, response, event, execution_time)
     apply_metadata(event, project, request, response, execution_time)
     decorate(event)
 
     issues = event.get("[issues]")
     issues.each do |issue|
-      issue["changelog"]["histories"].each do |histories|
-        transitions = histories.flat_map { |history|
+      transitions = issue["changelog"]["histories"].flat_map do |history|
           history["items"].select { |item|
             item["field"] == "status"
           }.map { |item|
             hist = history.clone
 
-            previous_status_id = item["from"]
-            hist["previous_status"] = statuses.select { |status| status["id"] == previous_status_id}.first
+            hist["previous_status_id"] = item["from"].to_i
+            hist["previous_status"] = item["fromString"]
 
-            status_id = item["to"]
-            hist["status"] = statuses.select { |status| status["id"] == status_id}.first
+            hist["status_id"] = item["to"].to_i
+            hist["status"] = item["toString"]
 
             hist.delete("items")
 
             hist
           }
-        }
-        issue["transitions"] = transitions
       end
+      issue["transitions"] = transitions
     end
     event.set("[issues]", issues)
 
@@ -230,9 +217,10 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
     @logger.error? && @logger.error("Error eventifying response!",
                                     :exception => e,
                                     :exception_message => e.message,
+                                    :backtrace => e.backtrace,
                                     :name => project,
-                                    :url => request,
-                                    :response => response
+                                    :url => request
+                                    #:response => response
     )
   end
 
@@ -308,4 +296,5 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
       "url" => url,
     }).map {|k,v| [k.to_s,v] }]
   end
+
 end
