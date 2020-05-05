@@ -56,10 +56,11 @@ class LogStash::Filters::Join < LogStash::Filters::Base
             joined_event.set(field, [joined_event.get(field)])
         end
 
-        total = event.get("[@metadata][task_total]")
-
-        @tasks[task_id] = {:event => joined_event, :count => 1, :total => total}
-        return []
+        total = event.get("[@metadata][total_tasks]")
+        if total.nil? || total == 0
+            return [event]
+        end
+        @tasks[task_id] = {:event => joined_event, :count => 0, :total => total}
     end
 
     @mutex.synchronize do
@@ -68,13 +69,13 @@ class LogStash::Filters::Join < LogStash::Filters::Base
         @join_fields.each do |field|
 
             field_aggregate = task[:event].get(field)
-            field_aggregate += event.get(field)
+            field_aggregate << event.get(field)
             task[:event].set(field, field_aggregate)
         end
         task[:count] += 1
 
         #TODO: It's possible that not all events will make it, implement a time out.
-        if task[:count] == task[:total]
+        if task[:count] > task[:total]
             yield task[:event]
         end
 

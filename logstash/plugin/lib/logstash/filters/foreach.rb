@@ -68,7 +68,7 @@ class LogStash::Filters::Foreach < LogStash::Filters::Base
             @logger.error("Foreach plugin: Field should be of Array type. field:#{@field} is of type = #{array_field_values.class}. Passing through")
             event.tag(FAILURE_TAG)
             event.set("[@metadata][task_id]", @task_id)
-            event.set("[@metadata][total_tasks]", 1)
+            event.set("[@metadata][total_tasks]", 0)
             event.set("[@metadata][current_task]", 0)
 
             filter_matched(event)
@@ -78,7 +78,7 @@ class LogStash::Filters::Foreach < LogStash::Filters::Base
         if array_field_values.empty?
            @logger.error("array_field_values is empty")
            event.set("[@metadata][task_id]", @task_id)
-           event.set("[@metadata][total_tasks]", 1)
+           event.set("[@metadata][total_tasks]", 0)
            event.set("[@metadata][current_task]", 0)
 
            filter_matched(event)
