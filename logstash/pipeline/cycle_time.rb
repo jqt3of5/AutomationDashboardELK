@@ -13,16 +13,24 @@ def filter(event)
 
   cycleTime = 0
 
+  start_events = transitions.select do |transition|
+    transition["status"]["statusCategory"]["name"] == "To Do" &&
+    transition["status"]["statusCategory"]["name"] == "In Progress"
+  end
+
+  end_events = transitions.select do |transition|
+    transition["status"]["statusCategory"]["name"] == "In Progress" &&
+    transition["status"]["statusCategory"]["name"] == "Done"
+  end
+
   transitions.each do |transition|
-    if transition["statusCategory"] == "InProgress"
+
+    if transition["status"]["statusCategory"]["name"] == "In Progress"
       cycleTime += transition["timeInStatus"]
     end
+
   end
 
   event.set("[issues][CycleTime]", cycleTime)
   [event]
-end
-
-def isStatusInProgress(status)
-
 end
