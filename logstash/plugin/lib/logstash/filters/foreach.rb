@@ -31,8 +31,6 @@ class LogStash::Filters::Foreach < LogStash::Filters::Base
   config :task_id, :validate => :string, :required => true
   config :field, :validate => :string, :required => true
 
-
-
   public
   def register
     @mutex = Mutex.new
@@ -54,10 +52,6 @@ class LogStash::Filters::Foreach < LogStash::Filters::Base
     if task_id.nil? || task_id == @task_id
 
       event.tag(FAILURE_TAG)
-      event.set("[@metadata][task_id]", @task_id)
-      event.set("[@metadata][total_tasks]", 1)
-      event.set("[@metadata][current_task]", 0)
-
       filter_matched(event)
       return [event]
     end
@@ -70,8 +64,8 @@ class LogStash::Filters::Foreach < LogStash::Filters::Base
             @logger.trace("Foreach plugin: if !array_field.is_a?(Array)");
             @logger.error("Foreach plugin: Field should be of Array type. field:#{@field} is of type = #{array_field_values.class}. Passing through")
             event.tag(FAILURE_TAG)
-            event.set("[@metadata][task_id]", @task_id)
-            event.set("[@metadata][total_tasks]", 0)
+            event.set("[@metadata][task_id]", task_id)
+            event.set("[@metadata][total_tasks]", 1)
             event.set("[@metadata][current_task]", 0)
 
             filter_matched(event)
@@ -80,7 +74,7 @@ class LogStash::Filters::Foreach < LogStash::Filters::Base
 
         if array_field_values.empty?
            @logger.error("array_field_values is empty")
-           event.set("[@metadata][task_id]", @task_id)
+           event.set("[@metadata][task_id]", task_id)
            event.set("[@metadata][total_tasks]", 0)
            event.set("[@metadata][current_task]", 0)
 
@@ -92,9 +86,9 @@ class LogStash::Filters::Foreach < LogStash::Filters::Base
 
           event_split = event.clone
           event_split.set(@field, value)
-          event.set("[@metadata][task_id]", @task_id)
-          event.set("[@metadata][total_tasks]", array_field_values.length)
-          event.set("[@metadata][current_task]", index)
+          event_split.set("[@metadata][task_id]", task_id)
+          event_split.set("[@metadata][total_tasks]", array_field_values.length)
+          event_split.set("[@metadata][current_task]", index)
 
           filter_matched(event_split)
           yield event_split

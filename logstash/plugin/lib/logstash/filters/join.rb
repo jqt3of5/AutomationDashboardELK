@@ -39,8 +39,6 @@ class LogStash::Filters::Join < LogStash::Filters::Base
   public
   def filter(event)
 
-    #TODO: Check if event has tag
-
     task_id = event.get("[@metadata][task_id]")
 
     if task_id.nil?
@@ -55,13 +53,13 @@ class LogStash::Filters::Join < LogStash::Filters::Base
         end
     end
 
-
     if !@tasks.key?(task_id)
+      # first event becomes the schema for the aggregated event
         joined_event = event.clone
 
         #Is there a better way to convert to an array?
         @join_fields.each do |field|
-            joined_event.set(field, [joined_event.get(field)])
+            joined_event.set(field, [])
         end
 
         total = event.get("[@metadata][total_tasks]")
