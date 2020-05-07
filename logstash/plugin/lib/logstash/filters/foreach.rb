@@ -49,6 +49,7 @@ class LogStash::Filters::Foreach < LogStash::Filters::Base
   def filter(event)
 
     task_id = event.sprintf(@task_id)
+    @logger.error("task_id #{task_id}")
     if task_id.nil? || task_id == @task_id
 
       event.tag(FAILURE_TAG)
@@ -86,6 +87,7 @@ class LogStash::Filters::Foreach < LogStash::Filters::Base
 
           event_split = event.clone
           event_split.set(@field, value)
+          @logger.error("yielding task iteration #{task_id}")
           event_split.set("[@metadata][task_id]", task_id)
           event_split.set("[@metadata][total_tasks]", array_field_values.length)
           event_split.set("[@metadata][current_task]", index)

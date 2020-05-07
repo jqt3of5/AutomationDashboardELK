@@ -74,7 +74,7 @@ class LogStash::Filters::Join < LogStash::Filters::Base
     @mutex.synchronize do
 
         task = @tasks[task_id]
-        @logger.error("found task for id", task)
+        @logger.error("found task for id #{task_id}")
         @join_fields.each do |field|
 
             field_aggregate = task[:event].get(field)
@@ -85,6 +85,7 @@ class LogStash::Filters::Join < LogStash::Filters::Base
 
         #TODO: It's possible that not all events will make it, implement a time out.
         if task[:count] >= task[:total]
+            @logger.error("Yielding aggregate for #{task_id}")
             yield task[:event]
             @tasks.delete(task_id)
         end
