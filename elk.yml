@@ -12,6 +12,7 @@ services:
      target: /usr/share/heartbeat/heartbeat.yml
   deploy:
    replicas: 0
+
  logstash:
   image: logstash_jire_poller:latest
   secrets:
@@ -26,6 +27,8 @@ services:
    - type: bind
      source: /Users/i52884/ELK/AutomationDashboard/logstash/pipeline
      target: /usr/share/logstash/pipeline
+  deploy:
+   replicas: 0
 
  kibana:
   image: docker.elastic.co/kibana/kibana:7.6.2
@@ -46,7 +49,6 @@ services:
    - node.data=false
    - bootstrap.memory_lock=false #Should be true, but whatever
    - "ES_JAVA_OPTS=-Xms256m -Xmx256m" #Memory to use for elasticsearch process
-
  elasticsearch02:
   image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
   environment:
@@ -56,7 +58,6 @@ services:
      - node.data=false
      - bootstrap.memory_lock=false #Should be true, but whatever
      - "ES_JAVA_OPTS=-Xms256m -Xmx256m" #Memory to use for elasticsearch process
-
  elasticsearch03:
   image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
   environment:
@@ -66,7 +67,6 @@ services:
    - node.data=false
    - bootstrap.memory_lock=false #Should be true, but whatever
    - "ES_JAVA_OPTS=-Xms256m -Xmx256m" #Memory to use for elasticsearch process
-
  elasticsearch:
   image: docker.elastic.co/elasticsearch/elasticsearch:7.6.2
   environment:

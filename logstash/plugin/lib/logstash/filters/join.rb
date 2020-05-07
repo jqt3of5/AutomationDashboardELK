@@ -40,16 +40,18 @@ class LogStash::Filters::Join < LogStash::Filters::Base
   def filter(event)
 
     task_id = event.get("[@metadata][task_id]")
-
+    @logger.error("task_id", task_id)
     if task_id.nil?
       filter_matched(event)
       return [event]
     end
 
+    #Does this event match the expected schema?
+    has_join_fields = true
     @join_fields.each do |field|
         if event.get(field).nil?
-            filter_matched(event)
-            return [event]
+            has_join_fields = false
+            @logger.error("Missing Join Field ", field)
         end
     end
 
@@ -72,6 +74,7 @@ class LogStash::Filters::Join < LogStash::Filters::Base
     @mutex.synchronize do
 
         task = @tasks[task_id]
+        @logger.error("found task for id", task)
         @join_fields.each do |field|
 
             field_aggregate = task[:event].get(field)

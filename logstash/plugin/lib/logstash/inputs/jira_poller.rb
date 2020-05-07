@@ -198,10 +198,10 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
             hist = history.clone
 
             hist["previous_status_id"] = item["from"].to_i
-            hist["previous_status"] = item["fromString"]
+            hist["previous_status_name"] = item["fromString"]
 
             hist["status_id"] = item["to"].to_i
-            hist["status"] = item["toString"]
+            hist["status_name"] = item["toString"]
 
             hist.delete("items")
 
