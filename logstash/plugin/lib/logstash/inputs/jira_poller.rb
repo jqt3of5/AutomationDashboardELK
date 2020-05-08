@@ -135,14 +135,12 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
 
   def run_once(queue)
     request = normalize_request(@baseurl)
-    method, url, spec = request
-    status_url = url + "/rest/api/2/status"
 
     @projects.each do |project|
         request_async(queue, project, request, 0)
     end
 
-    client.execute!
+
   end
 
   private
@@ -152,10 +150,17 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
     method, url, spec = request
 
     issue_url = url + URI::encode("/rest/api/2/search?jql=project=#{project} and #{@jql}&expand=changelog&startAt=#{startAt}&maxResults=50")
-
+    @logger.info("Pulling data from Jira, project: #{project} startAt: #{startAt}")
     client.async.send(method, issue_url, spec).
-      on_success {|response| handle_success(queue, project, startAt, request, response, Time.now - started)}.
-      on_failure {|exception| handle_failure(queue, project, request, exception, Time.now - started) }
+      on_success {|response|
+          @logger.info("Success Pulling data from Jira, project: #{project} startAt: #{startAt}")
+          handle_success(queue, project, startAt, request, response, Time.now - started)
+        }.on_failure do |exception|
+            @logger.error("Error pulling data from Jira #{project} startAt: #{startAt}")
+            handle_failure(queue, project, request, exception, Time.now - started)
+            request_async(queue, project, request, startAt)
+    end
+    client.execute!
   end
 
   private
@@ -173,6 +178,7 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
         end
       end
     else
+      @logger.error("Empty Body!")
       event = ::LogStash::Event.new
       handle_decoded_event(queue, project, request, response, event, execution_time)
     end
@@ -243,6 +249,7 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
    })
 
     queue << event
+
   rescue StandardError, java.lang.Exception => e
       @logger.error? && @logger.error("Cannot read URL or send the error as an event!",
                                       :exception => e,
@@ -258,6 +265,7 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
                                       :exception_backtrace => e.backtrace,
                                       :name => name,
                                       :url => request)
+
   end
 
   private

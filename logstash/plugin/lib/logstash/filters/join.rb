@@ -40,18 +40,31 @@ class LogStash::Filters::Join < LogStash::Filters::Base
   def filter(event)
 
     task_id = event.get("[@metadata][task_id]")
-    @logger.error("task_id", task_id)
+    @logger.trace("task_id #{task_id}")
     if task_id.nil?
       filter_matched(event)
       return [event]
     end
 
+    total = event.get("[@metadata][total_tasks]")
+    if total.nil?
+      @logger.error("Missing total #{task_id}")
+      filter_matched(event)
+      return [event]
+    end
+
+    if total == 0
+      @logger.info("Event for id #{task_id} has no elements")
+      filter_matched(event)
+      return [event]
+    end
+
     #Does this event match the expected schema?
-    has_join_fields = true
     @join_fields.each do |field|
         if event.get(field).nil?
-            has_join_fields = false
-            @logger.error("Missing Join Field ", field)
+          @logger.error("Missing Join Field ", field)
+          filter_matched(event)
+          return [event]
         end
     end
 
@@ -64,34 +77,25 @@ class LogStash::Filters::Join < LogStash::Filters::Base
             joined_event.set(field, [])
         end
 
-        total = event.get("[@metadata][total_tasks]")
-        if total.nil? || total == 0
-            return [event]
-        end
         @tasks[task_id] = {:event => joined_event, :count => 0, :total => total}
     end
 
-    @mutex.synchronize do
+    task = @tasks[task_id]
+    @logger.trace("found task #{task[:count]} of #{task[:total]} for id #{task_id}")
+    @join_fields.each do |field|
+        field_aggregate = task[:event].get(field)
+        field_aggregate << event.get(field)
+        task[:event].set(field, field_aggregate)
+    end
+    task[:count] += 1
 
-        task = @tasks[task_id]
-        @logger.error("found task for id #{task_id}")
-        @join_fields.each do |field|
+    event.cancel
 
-            field_aggregate = task[:event].get(field)
-            field_aggregate << event.get(field)
-            task[:event].set(field, field_aggregate)
-        end
-        task[:count] += 1
-
-        #TODO: It's possible that not all events will make it, implement a time out.
-        if task[:count] >= task[:total]
-            @logger.error("Yielding aggregate for #{task_id}")
-            yield task[:event]
-            @tasks.delete(task_id)
-        end
-
-        event.cancel
+    #TODO: It's possible that not all events will make it, implement a time out.
+    if task[:count] >= task[:total]
+        @logger.debug("Yielding aggregate for #{task_id}")
+        @tasks.delete(task_id)
+        return task[:event]
     end
   end # def filter
-
 end # class LogStash::Filters::Foreach
