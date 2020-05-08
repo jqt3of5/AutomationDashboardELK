@@ -49,49 +49,53 @@ class LogStash::Filters::Foreach < LogStash::Filters::Base
   def filter(event)
 
     task_id = event.sprintf(@task_id)
+
     @logger.debug("task_id #{task_id}")
+
     if task_id.nil? || task_id == @task_id
       @logger.error("bad task_id #{task_id}")
       event.tag(FAILURE_TAG)
       filter_matched(event)
-      return [event]
+      yield event
+      return
     end
 
     array_field_values = event.get(@field)
 
+    event_split = event.clone
+    event_split.set("[@metadata][task_id]", task_id)
+
     if !array_field_values.is_a?(Array)
         @logger.trace("Foreach plugin: if !array_field.is_a?(Array)");
         @logger.error("Foreach plugin: Field should be of Array type. field:#{@field} is of type = #{array_field_values.class}. Passing through")
-        event.tag(FAILURE_TAG)
-        event.set("[@metadata][task_id]", task_id)
-        event.set("[@metadata][total_tasks]", 1)
-        event.set("[@metadata][current_task]", 0)
+        event_split.tag(FAILURE_TAG)
+        event_split.set("[@metadata][task_id]", task_id)
+        event_split.set("[@metadata][total_tasks]", 1)
+        event_split.set("[@metadata][current_task]", 0)
 
-        filter_matched(event)
-        return [event]
-    end
-
-    if array_field_values.empty?
-       @logger.debug("array_field_values is empty")
-       event.set("[@metadata][task_id]", task_id)
-       event.set("[@metadata][total_tasks]", 0)
-       event.set("[@metadata][current_task]", 0)
-
-       filter_matched(event)
-       return [event]
-    end
-
-    array_field_values.each_with_index do |value, index|
-
-      event_split = event.clone
-      event_split.set(@field, value)
-      @logger.trace("yielding task iteration #{task_id}")
-      event_split.set("[@metadata][task_id]", task_id)
+        filter_matched(event_split)
+        yield event_split
+    else
       event_split.set("[@metadata][total_tasks]", array_field_values.length)
-      event_split.set("[@metadata][current_task]", index)
 
-      filter_matched(event_split)
-      yield event_split
+      if array_field_values.empty?
+         @logger.debug("array_field_values is empty")
+         event_split.set("[@metadata][current_task]", 0)
+
+         filter_matched(event_split)
+         yield event_split
+      else
+        array_field_values.each_with_index do |value, index|
+
+          event_split = event.clone
+          event_split.set(@field, value)
+          @logger.trace("yielding task iteration #{task_id}")
+          event_split.set("[@metadata][current_task]", index)
+
+          filter_matched(event_split)
+          yield event_split
+        end
+      end
     end
 
     event.cancel

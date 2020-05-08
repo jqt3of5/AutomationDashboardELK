@@ -43,20 +43,23 @@ class LogStash::Filters::Join < LogStash::Filters::Base
     @logger.trace("task_id #{task_id}")
     if task_id.nil?
       filter_matched(event)
-      return [event]
+      yield event
+      return
     end
 
     total = event.get("[@metadata][total_tasks]")
     if total.nil?
       @logger.error("Missing total #{task_id}")
       filter_matched(event)
-      return [event]
+      yield event
+      return
     end
 
     if total == 0
       @logger.info("Event for id #{task_id} has no elements")
       filter_matched(event)
-      return [event]
+      yield event
+      return
     end
 
     #Does this event match the expected schema?
@@ -64,7 +67,8 @@ class LogStash::Filters::Join < LogStash::Filters::Base
         if event.get(field).nil?
           @logger.error("Missing Join Field ", field)
           filter_matched(event)
-          return [event]
+          yield event
+          return
         end
     end
 
@@ -89,13 +93,14 @@ class LogStash::Filters::Join < LogStash::Filters::Base
     end
     task[:count] += 1
 
-    event.cancel
-
     #TODO: It's possible that not all events will make it, implement a time out.
     if task[:count] >= task[:total]
         @logger.debug("Yielding aggregate for #{task_id}")
         @tasks.delete(task_id)
-        return task[:event]
+        filter_matched(task[:event])
+        yield task[:event]
     end
+
+    event.cancel
   end # def filter
 end # class LogStash::Filters::Foreach

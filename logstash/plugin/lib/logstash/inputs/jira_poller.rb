@@ -140,7 +140,6 @@ class LogStash::Inputs::Jira_Poller < LogStash::Inputs::Base
         request_async(queue, project, request, 0)
     end
 
-
   end
 
   private
